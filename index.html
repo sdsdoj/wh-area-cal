@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>면적 · 용적률 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0f14;--surface:#151921;--surface2:#1c2230;--surface3:#232a38;
+  --border:#2a3040;--text:#e8ecf4;--text-dim:#7a8499;
+  --accent:#4af0c0;--accent-glow:rgba(74,240,192,.15);
+  --accent2:#6c8cff;--accent3:#ff6c8c;--warn:#ffb86c;
+  --ok:#4af0c0;--over:#ff5370;--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px 60px}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 20%,rgba(74,240,192,.035) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(108,140,255,.035) 0%,transparent 50%);pointer-events:none}
+.container{position:relative;z-index:1;width:100%;max-width:620px;animation:slideUp .55s cubic-bezier(.16,1,.3,1)}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(.92);opacity:.5}100%{transform:scale(1);opacity:1}}
+
+.header{text-align:center;margin-bottom:28px}
+.header .tag{display:inline-block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:var(--accent-glow);border:1px solid rgba(74,240,192,.2);padding:5px 12px;border-radius:100px;margin-bottom:14px}
+.header h1{font-size:26px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,var(--text),var(--text-dim));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:var(--text-dim);font-size:13px;margin-top:6px;font-weight:300}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:14px;transition:border-color .3s}
+.card:hover{border-color:rgba(74,240,192,.12)}
+.card-title{font-size:12px;font-weight:700;color:var(--text-dim);letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:7px}
+
+/* Mode Toggle */
+.mode-toggle-wrap{display:flex;justify-content:center;margin-bottom:20px}
+.mode-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative}
+.mode-btn{padding:10px 22px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;color:var(--text-dim);background:transparent;border:none;cursor:pointer;transition:all .25s;position:relative;z-index:1;letter-spacing:.3px}
+.mode-btn.active{color:var(--bg)}
+.mode-slider{position:absolute;top:3px;bottom:3px;border-radius:8px;background:var(--accent);transition:all .35s cubic-bezier(.16,1,.3,1);z-index:0}
+
+.mode-desc{text-align:center;font-size:11px;color:var(--text-dim);margin-bottom:16px;opacity:.7;font-weight:300}
+
+/* Inputs */
+.input-group{margin-bottom:14px}
+.input-group:last-child{margin-bottom:0}
+.input-group label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:500;color:var(--text-dim);margin-bottom:7px;letter-spacing:.3px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.input-wrap{position:relative}
+.input-wrap input[type="text"]{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:11px 50px 11px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:16px;font-weight:500;outline:none;transition:border-color .2s,box-shadow .2s}
+.input-wrap input::placeholder{color:var(--text-dim);opacity:.3;font-size:13px}
+.input-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.input-wrap .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);pointer-events:none}
+
+/* Space items */
+.space-item{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;animation:fadeIn .3s cubic-bezier(.16,1,.3,1);transition:border-color .2s}
+.space-item:hover{border-color:rgba(74,240,192,.18)}
+
+.space-main{display:grid;gap:0;align-items:center;background:var(--surface2);padding:10px 12px 10px 0}
+
+/* Area mode columns */
+.space-main.mode-area{grid-template-columns:6px 1fr 120px 50px 32px}
+/* Ratio mode columns */
+.space-main.mode-ratio{grid-template-columns:6px 1fr 70px 50px 32px}
+
+.space-color-bar{width:6px;height:100%;min-height:38px}
+.s-name{font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;background:transparent;border:none;color:var(--text);outline:none;padding:8px 10px;width:100%}
+.s-name::placeholder{color:var(--text-dim);opacity:.4}
+
+.s-input-wrap{position:relative}
+.s-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:7px;padding:8px 32px 8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;font-weight:500;outline:none;transition:border-color .2s,box-shadow .2s}
+.s-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.s-input::placeholder{color:var(--text-dim);opacity:.3;font-size:12px}
+.s-input-wrap .unit{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);pointer-events:none}
+
+.s-legal{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:7px;padding:8px 22px 8px 8px;color:var(--warn);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;outline:none;transition:border-color .2s;text-align:right}
+.s-legal:focus{border-color:var(--warn);box-shadow:0 0 0 2px rgba(255,184,108,.15)}
+.s-legal::placeholder{color:var(--text-dim);opacity:.3;font-size:11px;text-align:right}
+.s-legal-wrap{position:relative}
+.s-legal-wrap .unit{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:10px;color:var(--warn);pointer-events:none}
+
+.btn-sm{width:30px;height:30px;background:transparent;border:1.5px solid var(--border);border-radius:7px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0}
+.btn-remove:hover{border-color:var(--accent3);color:var(--accent3);background:rgba(255,108,140,.06)}
+
+.space-actions{display:flex;gap:4px;justify-content:center;align-items:center;padding:0 4px}
+
+/* Computed display (readonly result inside space row) */
+.s-computed{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);text-align:right;padding-right:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-computed .dim{font-size:10px;color:var(--text-dim);margin-left:2px}
+
+/* Sub-spaces */
+.sub-spaces{padding:8px 12px 8px 20px;background:var(--surface)}
+.sub-item{display:grid;gap:8px;align-items:center;padding:6px 0;animation:fadeIn .25s ease;border-bottom:1px solid rgba(42,48,64,.5)}
+.sub-item.mode-area{grid-template-columns:6px 1fr 100px 28px}
+.sub-item.mode-ratio{grid-template-columns:6px 1fr 60px 28px}
+.sub-item:last-of-type{border-bottom:none}
+.sub-color-bar{width:6px;height:24px;border-radius:3px;opacity:.5}
+.sub-name{font-family:'Noto Sans KR',sans-serif;font-size:12px;background:transparent;border:none;color:var(--text);outline:none;padding:6px 8px;width:100%;opacity:.85}
+.sub-name::placeholder{color:var(--text-dim);opacity:.35}
+.sub-input-wrap{position:relative}
+.sub-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 28px 6px 8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .2s}
+.sub-input:focus{border-color:var(--accent)}
+.sub-input::placeholder{color:var(--text-dim);opacity:.3;font-size:11px}
+.sub-input-wrap .unit{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);pointer-events:none}
+.btn-sub-rm{width:28px;height:28px;font-size:14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.btn-sub-rm:hover{border-color:var(--accent3);color:var(--accent3)}
+.btn-add-sub{display:flex;align-items:center;gap:4px;padding:6px 10px;margin:6px 0 4px 20px;background:transparent;border:1px dashed var(--border);border-radius:7px;color:var(--text-dim);font-size:11px;cursor:pointer;transition:all .2s;font-family:'Noto Sans KR',sans-serif}
+.btn-add-sub:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.btn-add{width:100%;padding:11px;background:transparent;border:1.5px dashed var(--border);border-radius:10px;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+
+/* Col labels */
+.col-labels{display:grid;gap:0;padding:0 12px 4px 0}
+.col-labels.mode-area{grid-template-columns:6px 1fr 120px 50px 32px}
+.col-labels.mode-ratio{grid-template-columns:6px 1fr 70px 50px 32px}
+.col-labels span{font-size:9px;color:var(--text-dim);opacity:.5;letter-spacing:.3px;padding-left:10px}
+
+/* Results */
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;text-align:center}
+.result-card.highlight{grid-column:1/-1;background:linear-gradient(135deg,rgba(74,240,192,.07),rgba(108,140,255,.05));border-color:rgba(74,240,192,.22)}
+.result-label{font-size:10px;color:var(--text-dim);letter-spacing:.4px;margin-bottom:5px}
+.result-value{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--text)}
+.result-value .ru{font-size:12px;color:var(--text-dim);margin-left:2px}
+.result-card.highlight .result-value{color:var(--accent);font-size:28px}
+
+/* Breakdown */
+.breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.breakdown-title{font-size:11px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:14px;font-weight:600}
+.bd-item{margin-bottom:16px}
+.bd-item:last-child{margin-bottom:0}
+.bd-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap;gap:4px}
+.bd-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.bd-name .dot{width:8px;height:8px}
+.bd-right{text-align:right}
+.bd-stats{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim)}
+.bd-stats .pct{font-weight:600}
+.bd-legal-line{font-family:'DM Mono',monospace;font-size:10px;margin-top:2px}
+.bd-bar-wrap{position:relative;height:10px;margin-bottom:2px}
+.bd-bar-bg{position:absolute;top:0;left:0;width:100%;height:10px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.bd-bar-fill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.16,1,.3,1)}
+.bd-legal-marker{position:absolute;top:-3px;height:16px;width:2px;background:var(--warn);border-radius:1px;transition:left .4s cubic-bezier(.16,1,.3,1);z-index:2}
+.bd-legal-marker::after{content:'법규';position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--warn);font-family:'Noto Sans KR',sans-serif;white-space:nowrap;font-weight:600}
+.status-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;letter-spacing:.3px}
+.badge-ok{background:rgba(74,240,192,.12);color:var(--ok)}
+.badge-warn{background:rgba(255,184,108,.12);color:var(--warn)}
+.badge-over{background:rgba(255,83,112,.12);color:var(--over)}
+.bd-subs{margin-top:8px;padding-left:16px;border-left:2px solid var(--border)}
+.bd-sub-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px}
+.bd-sub-name{color:var(--text-dim);display:flex;align-items:center;gap:6px}
+.bd-sub-name .dot{width:5px;height:5px}
+.bd-sub-stats{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim)}
+.bd-remain{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.empty-state{text-align:center;padding:32px 20px;color:var(--text-dim);font-size:13px;font-weight:300}
+.empty-state .icon{font-size:26px;margin-bottom:8px;opacity:.3}
+.pop{animation:pop .3s cubic-bezier(.16,1,.3,1)}
+
+@media(max-width:520px){
+  .results-grid{grid-template-columns:1fr}
+  .result-card.highlight{grid-column:auto}
+  .space-main.mode-area{grid-template-columns:5px 1fr 90px 44px 28px}
+  .space-main.mode-ratio{grid-template-columns:5px 1fr 56px 44px 28px}
+  .col-labels.mode-area{grid-template-columns:5px 1fr 90px 44px 28px}
+  .col-labels.mode-ratio{grid-template-columns:5px 1fr 56px 44px 28px}
+  .sub-item.mode-area{grid-template-columns:5px 1fr 80px 26px}
+  .sub-item.mode-ratio{grid-template-columns:5px 1fr 52px 26px}
+  body{padding:16px 10px 40px}
+  .card{padding:16px}
+  .mode-btn{padding:9px 16px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="tag">WH Area Calculator</div>
+    <h1>면적 · 용적률 계산기</h1>
+    <p>공간별 면적과 법규 비율을 비교 분석합니다</p>
+  </div>
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle-wrap">
+    <div class="mode-toggle" id="modeToggle">
+      <div class="mode-slider" id="modeSlider"></div>
+      <button class="mode-btn active" data-mode="area" id="btnModeArea">면적 → 비율</button>
+      <button class="mode-btn" data-mode="ratio" id="btnModeRatio">비율 → 면적</button>
+    </div>
+  </div>
+  <div class="mode-desc" id="modeDesc">공간 면적을 입력하면 비율을 계산합니다</div>
+
+  <div class="card">
+    <div class="card-title">🏗 기본 면적</div>
+    <div class="input-group">
+      <label><span class="dot" style="background:var(--accent3)"></span>대지 면적</label>
+      <div class="input-wrap"><input type="text" id="landArea" inputmode="decimal" placeholder="0"><span class="unit">m²</span></div>
+    </div>
+    <div class="input-group">
+      <label><span class="dot" style="background:var(--accent2)"></span>연면적 (전체 면적)</label>
+      <div class="input-wrap"><input type="text" id="totalArea" inputmode="decimal" placeholder="0"><span class="unit">m²</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 공간 목록</div>
+    <div class="col-labels mode-area" id="colLabels">
+      <span></span><span>공간 이름</span><span id="colMain" style="text-align:center">면적 (m²)</span><span style="text-align:center">법규 %</span><span></span>
+    </div>
+    <div id="spaceList"></div>
+    <button class="btn-add" id="btnAdd"><span style="font-size:17px">+</span> 공간 추가</button>
+  </div>
+
+  <div id="output"><div class="empty-state"><div class="icon">📊</div>면적 값을 입력하면 결과가 표시됩니다</div></div>
+</div>
+
+<script>
+const COLORS=['#4af0c0','#6c8cff','#ff6c8c','#ffb86c','#c792ea','#89ddff','#f78c6c','#c3e88d','#ff5370','#82aaff'];
+let nid=1, mode='area'; // 'area' or 'ratio'
+function newId(){return nid++}
+let spaces=[{id:newId(),name:'',value:'',legal:'',subs:[]}];
+
+const $=s=>document.querySelector(s);
+const landInput=$('#landArea'),totalInput=$('#totalArea'),spaceList=$('#spaceList'),btnAdd=$('#btnAdd'),output=$('#output');
+const modeSlider=$('#modeSlider'),btnModeArea=$('#btnModeArea'),btnModeRatio=$('#btnModeRatio'),modeDesc=$('#modeDesc'),colLabels=$('#colLabels'),colMain=$('#colMain');
+
+const pn=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)||n<0?NaN:n};
+const fmt=(n,d=1)=>(isNaN(n)||!isFinite(n))?'—':n.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// Mode toggle
+function updateSlider(){
+  const aRect=btnModeArea.getBoundingClientRect();
+  const rRect=btnModeRatio.getBoundingClientRect();
+  const pRect=btnModeArea.parentElement.getBoundingClientRect();
+  if(mode==='area'){
+    modeSlider.style.left=(aRect.left-pRect.left+3)+'px';
+    modeSlider.style.width=(aRect.width-6)+'px';
+  } else {
+    modeSlider.style.left=(rRect.left-pRect.left+3)+'px';
+    modeSlider.style.width=(rRect.width-6)+'px';
+  }
+}
+
+function setMode(m){
+  mode=m;
+  btnModeArea.classList.toggle('active',m==='area');
+  btnModeRatio.classList.toggle('active',m==='ratio');
+  modeDesc.textContent=m==='area'?'공간 면적을 입력하면 비율을 계산합니다':'공간 비율(%)을 입력하면 면적을 계산합니다';
+  colLabels.className='col-labels mode-'+m;
+  colMain.textContent=m==='area'?'면적 (m²)':'비율 (%)';
+  updateSlider();
+  render();
+}
+
+btnModeArea.addEventListener('click',()=>setMode('area'));
+btnModeRatio.addEventListener('click',()=>setMode('ratio'));
+window.addEventListener('resize',updateSlider);
+requestAnimationFrame(updateSlider);
+
+function render(){
+  spaceList.innerHTML='';
+  spaces.forEach((sp,i)=>{
+    const c=COLORS[i%COLORS.length];
+    const el=document.createElement('div');
+    el.className='space-item';
+
+    const isArea=mode==='area';
+    const mainPlaceholder=isArea?'0':'0';
+    const mainUnit=isArea?'m²':'%';
+
+    // Compute display for ratio mode (show computed area) or area mode (show computed %)
+    const total=pn(totalInput.value);
+    const hasTotal=!isNaN(total)&&total>0;
+    let computedHTML='';
+    if(hasTotal){
+      const v=pn(sp.value);
+      if(!isNaN(v)&&v>0){
+        if(isArea){
+          const pct=(v/total)*100;
+          computedHTML=`<span style="font-size:11px;color:${c};font-family:'DM Mono',monospace;opacity:.7">${fmt(pct)}%</span>`;
+        } else {
+          const area=total*(v/100);
+          computedHTML=`<span style="font-size:11px;color:${c};font-family:'DM Mono',monospace;opacity:.7">${fmt(area)} m²</span>`;
+        }
+      }
+    }
+
+    // Sub-spaces
+    let subsHTML='';
+    if(sp.subs.length>0){
+      subsHTML='<div class="sub-spaces">';
+      sp.subs.forEach((sub)=>{
+        subsHTML+=`
+        <div class="sub-item mode-${mode}">
+          <div class="sub-color-bar" style="background:${c}"></div>
+          <input class="sub-name" type="text" placeholder="하위 공간명" value="${sub.name}" data-pid="${sp.id}" data-sid="${sub.id}" data-f="name">
+          <div class="sub-input-wrap">
+            <input class="sub-input" type="text" inputmode="decimal" placeholder="0" value="${sub.value}" data-pid="${sp.id}" data-sid="${sub.id}" data-f="value">
+            <span class="unit">${mainUnit}</span>
+          </div>
+          <button class="btn-sub-rm" data-pid="${sp.id}" data-sid="${sub.id}">×</button>
+        </div>`;
+      });
+      subsHTML+='</div>';
+    }
+
+    el.innerHTML=`
+      <div class="space-main mode-${mode}">
+        <div class="space-color-bar" style="background:${c}"></div>
+        <div style="display:flex;align-items:center;gap:4px;overflow:hidden">
+          <input class="s-name" type="text" placeholder="공간 이름" value="${sp.name}" data-id="${sp.id}" data-f="name">
+          ${computedHTML?'<div style="flex-shrink:0;padding-right:4px">'+computedHTML+'</div>':''}
+        </div>
+        <div class="s-input-wrap">
+          <input class="s-input" type="text" inputmode="decimal" placeholder="${mainPlaceholder}" value="${sp.value}" data-id="${sp.id}" data-f="value">
+          <span class="unit">${mainUnit}</span>
+        </div>
+        <div class="s-legal-wrap">
+          <input class="s-legal" type="text" inputmode="decimal" placeholder="—" value="${sp.legal}" data-id="${sp.id}" data-f="legal">
+          <span class="unit">%</span>
+        </div>
+        <div class="space-actions">
+          <button class="btn-sm btn-remove" data-id="${sp.id}">×</button>
+        </div>
+      </div>
+      ${subsHTML}
+      <button class="btn-add-sub" data-id="${sp.id}">+ 하위 공간</button>`;
+    spaceList.appendChild(el);
+  });
+  bind();
+  calc();
+}
+
+function bind(){
+  document.querySelectorAll('.s-name,.s-input,.s-legal').forEach(el=>{
+    el.addEventListener('input',e=>{
+      const sp=spaces.find(s=>s.id===+e.target.dataset.id);
+      if(sp)sp[e.target.dataset.f]=e.target.value;
+      calc();
+      // Re-render computed displays without full re-render to avoid losing focus
+      updateComputed();
+    });
+  });
+  document.querySelectorAll('.sub-name,.sub-input').forEach(el=>{
+    el.addEventListener('input',e=>{
+      const sp=spaces.find(s=>s.id===+e.target.dataset.pid);
+      const sub=sp?.subs.find(s=>s.id===+e.target.dataset.sid);
+      if(sub)sub[e.target.dataset.f]=e.target.value;
+      calc();
+    });
+  });
+  document.querySelectorAll('.btn-remove').forEach(el=>{
+    el.addEventListener('click',e=>{
+      const id=+e.target.dataset.id;
+      if(spaces.length<=1){spaces[0].name='';spaces[0].value='';spaces[0].legal='';spaces[0].subs=[];}
+      else spaces=spaces.filter(s=>s.id!==id);
+      render();
+    });
+  });
+  document.querySelectorAll('.btn-sub-rm').forEach(el=>{
+    el.addEventListener('click',e=>{
+      const sp=spaces.find(s=>s.id===+e.target.dataset.pid);
+      if(sp)sp.subs=sp.subs.filter(s=>s.id!==+e.target.dataset.sid);
+      render();
+    });
+  });
+  document.querySelectorAll('.btn-add-sub').forEach(el=>{
+    el.addEventListener('click',e=>{
+      const sp=spaces.find(s=>s.id===+e.target.dataset.id);
+      if(sp){sp.subs.push({id:newId(),name:'',value:''});render();}
+    });
+  });
+}
+
+function updateComputed(){
+  // Lightweight update of computed displays - re-render is simpler for now
+}
+
+btnAdd.addEventListener('click',()=>{
+  spaces.push({id:newId(),name:'',value:'',legal:'',subs:[]});
+  render();
+  const items=spaceList.querySelectorAll('.s-name');
+  items[items.length-1]?.focus();
+});
+
+[landInput,totalInput].forEach(el=>el.addEventListener('input',()=>{calc();render();}));
+
+function getSpaceArea(sp){
+  const v=pn(sp.value);
+  const total=pn(totalInput.value);
+  const hasTotal=!isNaN(total)&&total>0;
+  if(mode==='area') return v;
+  if(mode==='ratio'&&hasTotal&&!isNaN(v)) return total*(v/100);
+  return NaN;
+}
+
+function getSpaceRatio(sp){
+  const v=pn(sp.value);
+  const total=pn(totalInput.value);
+  const hasTotal=!isNaN(total)&&total>0;
+  if(mode==='ratio') return v;
+  if(mode==='area'&&hasTotal&&!isNaN(v)) return (v/total)*100;
+  return NaN;
+}
+
+function getSubArea(sub, parentArea){
+  const v=pn(sub.value);
+  const total=pn(totalInput.value);
+  const hasTotal=!isNaN(total)&&total>0;
+  if(mode==='area') return v;
+  if(mode==='ratio'&&hasTotal&&!isNaN(v)) return total*(v/100);
+  return NaN;
+}
+
+function calc(){
+  const land=pn(landInput.value);
+  const total=pn(totalInput.value);
+  const hasTotal=!isNaN(total)&&total>0;
+  const hasLand=!isNaN(land)&&land>0;
+
+  const parsed=spaces.map((sp,i)=>{
+    const area=getSpaceArea(sp);
+    const ratio=getSpaceRatio(sp);
+    const legal=pn(sp.legal);
+    const subs=sp.subs.map((sub,si)=>{
+      const sa=getSubArea(sub, area);
+      return{name:sub.name.trim()||`하위 ${si+1}`,area:sa};
+    }).filter(s=>!isNaN(s.area)&&s.area>0);
+    return{name:sp.name.trim()||`공간 ${i+1}`,area,ratio,legal,color:COLORS[i%COLORS.length],subs};
+  });
+
+  const valid=parsed.filter(s=>!isNaN(s.area)&&s.area>0);
+  const sumSpace=valid.reduce((s,v)=>s+v.area,0);
+  const hasSpaces=valid.length>0;
+
+  if(!hasTotal&&!hasSpaces){
+    output.innerHTML='<div class="empty-state"><div class="icon">📊</div>면적 값을 입력하면 결과가 표시됩니다</div>';
+    return;
+  }
+
+  let h='<div class="results-grid">';
+  if(hasLand&&hasTotal){
+    h+=`<div class="result-card highlight"><div class="result-label">용적률 (연면적 ÷ 대지면적)</div><div class="result-value pop">${fmt((total/land)*100)}<span class="ru">%</span></div></div>`;
+  }
+  if(hasTotal&&hasSpaces){
+    h+=`<div class="result-card"><div class="result-label">공간 합계</div><div class="result-value pop">${fmt(sumSpace)}<span class="ru">m²</span></div></div>`;
+    h+=`<div class="result-card"><div class="result-label">전체 대비 사용률</div><div class="result-value pop">${fmt((sumSpace/total)*100)}<span class="ru">%</span></div></div>`;
+  }
+  h+='</div>';
+
+  if(hasTotal&&hasSpaces){
+    h+='<div class="breakdown"><div class="breakdown-title">공간별 비율 · 법규 비교</div>';
+    const maxV=Math.max(...parsed.map(sp=>{
+      if(isNaN(sp.area)||sp.area<=0)return 0;
+      const pct=(sp.area/total)*100;
+      return Math.max(pct,isNaN(sp.legal)?0:sp.legal);
+    }),1);
+    const bs=v=>Math.min((v/Math.max(maxV*1.15,1))*100,100);
+
+    parsed.forEach(sp=>{
+      if(isNaN(sp.area)||sp.area<=0)return;
+      const pct=(sp.area/total)*100;
+      const hasLegal=!isNaN(sp.legal)&&sp.legal>0;
+      let badge='',legalLine='';
+      if(hasLegal){
+        const diff=pct-sp.legal;
+        if(Math.abs(diff)<0.5)badge='<span class="status-badge badge-warn">적정</span>';
+        else if(diff>0)badge=`<span class="status-badge badge-over">초과 +${fmt(diff)}%p</span>`;
+        else badge=`<span class="status-badge badge-ok">여유 ${fmt(diff)}%p</span>`;
+        legalLine=`<div class="bd-legal-line" style="color:var(--warn)">법규 기준: ${fmt(sp.legal)}%</div>`;
+      }
+
+      h+=`<div class="bd-item">
+        <div class="bd-header">
+          <div class="bd-name"><span class="dot" style="background:${sp.color}"></span>${sp.name}${badge}</div>
+          <div class="bd-right">
+            <div class="bd-stats"><span>${fmt(sp.area)} m²</span>  <span class="pct" style="color:${sp.color}">${fmt(pct)}%</span></div>
+            ${legalLine}
+          </div>
+        </div>
+        <div class="bd-bar-wrap">
+          <div class="bd-bar-bg"><div class="bd-bar-fill" style="width:${bs(pct)}%;background:${sp.color}"></div></div>
+          ${hasLegal?`<div class="bd-legal-marker" style="left:${bs(sp.legal)}%"></div>`:''}
+        </div>`;
+
+      if(sp.subs.length>0){
+        h+='<div class="bd-subs">';
+        sp.subs.forEach(sub=>{
+          const subPct=sp.area>0?(sub.area/sp.area)*100:0;
+          const subTPct=(sub.area/total)*100;
+          h+=`<div class="bd-sub-item">
+            <div class="bd-sub-name"><span class="dot" style="background:${sp.color}"></span>${sub.name}</div>
+            <div class="bd-sub-stats">${fmt(sub.area)} m²  <span style="opacity:.6">${fmt(subPct)}%</span>  <span style="color:${sp.color}">(전체 ${fmt(subTPct)}%)</span></div>
+          </div>`;
+        });
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+
+    const remain=total-sumSpace;
+    if(remain>0){
+      const rPct=(remain/total)*100;
+      h+=`<div class="bd-item bd-remain">
+        <div class="bd-header"><div class="bd-name"><span class="dot" style="background:var(--border)"></span>나머지</div>
+        <div class="bd-right"><div class="bd-stats"><span>${fmt(remain)} m²</span>  <span style="color:var(--text-dim)">${fmt(rPct)}%</span></div></div></div>
+        <div class="bd-bar-wrap"><div class="bd-bar-bg"><div class="bd-bar-fill" style="width:${bs(rPct)}%;background:var(--border)"></div></div></div>
+      </div>`;
+    }
+    h+='</div>';
+  }
+  output.innerHTML=h;
+}
+
+render();
+</script>
+</body>
+</html>
